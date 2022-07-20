@@ -3,31 +3,46 @@ import numpy as np
 import pydicom as pd
 import matplotlib
 from matplotlib import pyplot
-import os
 import SimpleITK as sitk
-#import radiomics
+from radiomics import firstorder, featureextractor, shape
+import six
 
-def open_dicom(dir, start, stop):
-    os.chdir(dir)
-    dicom_filenames = np.array([f'IMG-0001-000{i}.dcm' for i in range(start, stop)])
+
+def open_dicom(dir: str, start: int, stop: int):
+    dicom_filenames = np.array([f'{dir}IMG-0001-000{i}.dcm' for i in range(start, stop)])
     dicom_count = dicom_stop - dicom_start
     dicom_files = np.array([pd.dcmread(dicom_filenames[i]) for i in range(0, dicom_count)])
     return dicom_files
 
-def open_nrrd(dir, name):
-    os.chdir(dir)
-    image = sitk.ReadImage(name)
+
+def open_nrrd(dir: str, name: str):
+    image = sitk.ReadImage(dir + name)
     return image
 
-def get_array(nrrd_img):
+
+def get_array(nrrd_img: sitk.SimpleITK.Image):
     pix_array = sitk.GetArrayFromImage(nrrd_img)
     return pix_array
 
-def first_order():
+
+def first_order(image, mask):
     firstOrderFeatures = firstorder.RadiomicsFirstOrder(image, mask)
-    firstOrderFeatures.calculateFeatures()
-    for (key, val) in six.iteritems(firstOrderFeatures.featureValues):
-        print("\t%s: %s" % (key, val))
+    firstOrderFeatures.enableAllFeatures()
+    firstOrderFeatures.execute()
+    return firstOrderFeatures
+
+
+def img_to_shape(image, mask):
+    img_shape = shape.RadiomicsShape(image, mask)
+    return img_shape
+
+
+def img_extractor(img_path: str, mask_path: str):
+    extractor = featureextractor.RadiomicsFeatureExtractor()
+    result = extractor.execute(img_path, mask_path)
+    for (key, val) in six.iteritems(result):
+        print(f'{key} : {val}')
+
 
 def plot(data):
     if str(type(data)) == "<class 'pydicom.dataset.FileDataset'>":
@@ -36,6 +51,56 @@ def plot(data):
         X = data
     pyplot.imshow(X, cmap=matplotlib.cm.gray)
     pyplot.show()
+
+
+def get_mean(img_ord: firstorder.RadiomicsFirstOrder):
+    count = float(img_ord.getMeanFeatureValue())
+    return count
+
+
+def get_sd(img_ord: firstorder.RadiomicsFirstOrder):
+    count = float(img_ord.getStandardDeviationFeatureValue())
+    return count
+
+
+def get_median(img_ord: firstorder.RadiomicsFirstOrder):
+    count = float(img_ord.getMedianFeatureValue())
+    return count
+
+
+def get_diam_x(img_sh: shape.RadiomicsShape):
+    count = float(img_sh.getMaximum2DDiameterColumnFeatureValue())
+    return count
+
+
+def get_diam_y(img_sh: shape.RadiomicsShape):
+    count = float(img_sh.getMaximum2DDiameterRowFeatureValue())
+    return count
+
+
+def get_diam_z(img_sh: shape.RadiomicsShape):
+    count = float(img_sh.getMaximum2DDiameterSliceFeatureValue())
+    return count
+
+
+def get_major(img_sh: shape.RadiomicsShape):
+    count = float(img_sh.getMajorAxisLengthFeatureValue())
+    return count
+
+
+def get_minor(img_sh: shape.RadiomicsShape):
+    count = float(img_sh.getMinorAxisLengthFeatureValue())
+    return count
+
+
+def get_mesh_volume(img_sh: shape.RadiomicsShape):
+    count = float(img_sh.getMeshVolumeFeatureValue())
+    return count
+
+
+def get_voxel_volume(img_sh: shape.RadiomicsShape):
+    count = float(img_sh.getVoxelVolumeFeatureValue())
+    return count
 
 
 if __name__ == "__main__":
@@ -47,19 +112,23 @@ if __name__ == "__main__":
     mask_nrrd_array = get_array(mask_nrrd)
     image_nrrd_array = get_array(image_nrrd)
 
-    #plot(image_dicom[10])
+    img_orders = first_order(image_nrrd, mask_nrrd)
+    img_shape = img_to_shape(image_nrrd, mask_nrrd)
+
+    mean = get_mean(img_orders)
+    sd = get_sd(img_orders)
+    median = get_median(img_orders)
+    x = get_diam_x(img_shape)
+    y = get_diam_y(img_shape)
+    z = get_diam_z(img_shape)
+    major = get_major(img_shape)
+    minor = get_minor(img_shape)
+    mesh_volume = get_mesh_volume(img_shape)
+    voxel_volume = get_voxel_volume(img_shape)
+
+    print(f' mean = {mean}\n sd = {sd}\n median = {median}\n x = {x}\n y = {y}\n z = {z}\n major = {major}\n '
+          f'minor = {minor}\n mesh volume = {mesh_volume}\n voxel volume = {voxel_volume}')
+
     plot(image_nrrd_array[10])
 
-    print(type(image_dicom), type(image_dicom[10]), type(image_nrrd), type(image_nrrd_array))
-    #print(len(mask_nrrd_array), len(mask_nrrd_array[0]), len(mask_nrrd_array[0][0]))
-    #print(image_nrrd_array[8][200])
-    #print(list(dicom_files[0][0x20, 0x32])[2])
 
-
-#[-247.800, -248.500, -64.000]
-#[-247.800, -248.500, -65.000]
-
-#print (dicom_images)
-#print(dicom_filenames)
-
-#mask = struct_to_mask(dicom_dir, dicom_files, struct_name)
