@@ -1,11 +1,11 @@
+import sys
 from settings import *
 import numpy as np
 import pydicom as pd
 import matplotlib
 from matplotlib import pyplot
 import SimpleITK as sitk
-from radiomics import firstorder, featureextractor, shape
-import six
+from radiomics import firstorder, shape
 
 
 def open_dicom(dir: str, start: int, stop: int):
@@ -20,36 +20,25 @@ def open_nrrd(dir: str, name: str):
     return image
 
 
-def get_array(nrrd_img: sitk.SimpleITK.Image):
+def get_array(nrrd_img: sitk.Image):
     pix_array = sitk.GetArrayFromImage(nrrd_img)
     return pix_array
 
 
-def first_order(image, mask):
-    firstOrderFeatures = firstorder.RadiomicsFirstOrder(image, mask)
-    firstOrderFeatures.enableAllFeatures()
-    firstOrderFeatures.execute()
-    return firstOrderFeatures
+def first_order(image: sitk.Image, mask: sitk.Image):
+    first_order_features = firstorder.RadiomicsFirstOrder(image, mask)
+    first_order_features.enableAllFeatures()
+    first_order_features.execute()
+    return first_order_features
 
 
-def img_to_shape(image, mask):
+def img_to_shape(image: sitk.Image, mask: sitk.Image):
     img_shape = shape.RadiomicsShape(image, mask)
     return img_shape
 
 
-def img_extractor(img_path: str, mask_path: str):
-    extractor = featureextractor.RadiomicsFeatureExtractor()
-    result = extractor.execute(img_path, mask_path)
-    for (key, val) in six.iteritems(result):
-        print(f'{key} : {val}')
-
-
-def plot(data):
-    if str(type(data)) == "<class 'pydicom.dataset.FileDataset'>":
-        X = data.pixel_array
-    else:
-        X = data
-    pyplot.imshow(X, cmap=matplotlib.cm.gray)
+def plot_array(data: np.ndarray):
+    pyplot.imshow(data, cmap=matplotlib.cm.gray)
     pyplot.show()
 
 
@@ -104,7 +93,7 @@ def get_voxel_volume(img_sh: shape.RadiomicsShape):
 
 
 if __name__ == "__main__":
-    image_dicom = open_dicom(dicom_dir, dicom_start, dicom_stop)
+    # image_dicom = open_dicom(dicom_dir, dicom_start, dicom_stop)
 
     mask_nrrd = open_nrrd(mask_dir, mask_name)
     image_nrrd = open_nrrd(nrrd_dir, nrrd__image_name)
@@ -129,6 +118,4 @@ if __name__ == "__main__":
     print(f' mean = {mean}\n sd = {sd}\n median = {median}\n x = {x}\n y = {y}\n z = {z}\n major = {major}\n '
           f'minor = {minor}\n mesh volume = {mesh_volume}\n voxel volume = {voxel_volume}')
 
-    plot(image_nrrd_array[10])
-
-
+    plot_array(image_nrrd_array[10])
