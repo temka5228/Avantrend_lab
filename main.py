@@ -177,6 +177,6 @@ if __name__ == "__main__":
     voxel_volume = get_voxel_volume(mask_coord, spacing)
 
     print(f' mean = {mean}\n sd = {sd}\n median = {median}\n x = {x}\n y = {y}\n z = {z}\n major = {major}\n '
-          f'minor = {minor}\n major = {major}\n voxel volume = {voxel_volume}')
+          f'minor = {minor}\n voxel volume = {voxel_volume}')
 
     plot(masked_image[10])
